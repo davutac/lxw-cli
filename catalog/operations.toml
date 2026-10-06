@@ -1,0 +1,1343 @@
+# Lexware API operation catalog.
+#
+# This file is the single source of truth for the CLI: every entry becomes a
+# `lxw <resource> <action>` command, shows up in `lxw cli search`, and is
+# rendered by `lxw schema <resource> <action>`. Field references and examples are looked up
+# in catalog/docs.json by the `docs` / `schema` section anchors.
+#
+# access   = "public"  -> available with a personal API key (Public API)
+#            "partner" -> documented only for the Partner API (OAuth2, partner contract);
+#            operations inherit `access` from their resource
+# max_page_size -> marks a paged list endpoint
+# upload   = file limits per `type` form value (multipart operations)
+# lock_field = optimistic-locking body field of PUT operations (default "version")
+# quota    = "outgoing-vouchers": creates/sends an outgoing voucher; Lexware's Fair Usage
+#            Policy allows at most 20 per minute, enforced across processes
+# body     = "none" | "json" | "json-array" | "multipart"
+# response = "json" | "binary" | "empty"
+# confirm  = reason shown when the operation needs --yes (irreversible / outward-facing)
+# Query params: type = string | uuid | integer | boolean | date | enum | csv | flag
+#   flag      -> presence sends `name=true`
+#   html_encode -> value is HTML-escaped (&, <, >) before URL encoding (Lexware search quirk)
+#   open_enum -> `values` are suggestions; other values are passed through
+
+# ---------------------------------------------------------------------------
+# Resources
+# ---------------------------------------------------------------------------
+
+[[resources]]
+name = "articles"
+title = "Articles (Artikel)"
+summary = "Products and services that can be referenced in sales voucher line items."
+keywords = ["artikel", "produkt", "produkte", "dienstleistung", "product", "service", "item", "sku", "gtin", "ean", "price", "preis"]
+docs = "articles-endpoint"
+schema = ["articles-endpoint-article-properties"]
+
+[[resources]]
+name = "contacts"
+title = "Contacts (Kontakte)"
+summary = "Customers and vendors with addresses, email addresses, phone numbers and contact persons."
+keywords = ["kontakt", "kontakte", "kunde", "kunden", "lieferant", "lieferanten", "customer", "vendor", "supplier", "client", "person", "company", "firma", "address", "adresse"]
+docs = "contacts-endpoint"
+schema = ["contacts-endpoint-contact-properties"]
+
+[[resources]]
+name = "contact-bank-accounts"
+title = "Contact bank accounts (Bankverbindungen)"
+summary = "Bank accounts stored on a contact (Partner API only)."
+keywords = ["bankverbindung", "bank", "account", "iban", "bic", "konto", "contact"]
+docs = "contacts-endpoint-retrieve-contacts-39-bank-accounts"
+schema = ["contacts-endpoint-retrieve-contacts-39-bank-accounts"]
+access = "partner"
+
+[[resources]]
+name = "countries"
+title = "Countries (Länder)"
+summary = "Countries known to Lexware with their tax classification (de, intraCommunity, thirdPartyCountry)."
+keywords = ["land", "länder", "laender", "country", "iso", "countrycode", "eu", "tax classification"]
+docs = "countries-endpoint"
+schema = ["countries-endpoint-country-properties"]
+
+[[resources]]
+name = "credit-notes"
+title = "Credit notes (Gutschriften / Rechnungskorrekturen)"
+summary = "Sales credit notes: create (draft or finalized), read, download PDF/XRechnung."
+keywords = ["gutschrift", "gutschriften", "rechnungskorrektur", "refund", "erstattung", "credit", "creditnote"]
+docs = "credit-notes-endpoint"
+schema = ["credit-notes-endpoint-credit-notes-properties"]
+
+[[resources]]
+name = "delivery-notes"
+title = "Delivery notes (Lieferscheine)"
+summary = "Delivery notes: create (draft or finalized), read, download PDF."
+keywords = ["lieferschein", "lieferscheine", "delivery", "shipping", "versand", "deliverynote"]
+docs = "delivery-notes-endpoint"
+schema = ["delivery-notes-endpoint-delivery-notes-properties"]
+
+[[resources]]
+name = "dunnings"
+title = "Dunnings (Mahnungen)"
+summary = "Payment reminders for an existing invoice or down payment invoice."
+keywords = ["mahnung", "mahnungen", "zahlungserinnerung", "reminder", "dunning", "overdue", "überfällig", "inkasso"]
+docs = "dunnings-endpoint"
+schema = ["dunnings-endpoint-dunnings-properties"]
+
+[[resources]]
+name = "down-payment-invoices"
+title = "Down payment invoices (Abschlagsrechnungen)"
+summary = "Read-only access to down payment invoices and their documents."
+keywords = ["abschlagsrechnung", "abschlagsrechnungen", "anzahlungsrechnung", "anzahlung", "down payment", "deposit", "downpaymentinvoice"]
+docs = "down-payment-invoices-endpoint"
+schema = ["down-payment-invoices-endpoint-down-payment-invoices-properties"]
+
+[[resources]]
+name = "event-subscriptions"
+title = "Event subscriptions (Webhooks)"
+summary = "Subscribe a HTTPS callback URL to Lexware events such as invoice.created or contact.changed."
+keywords = ["webhook", "webhooks", "event", "events", "subscription", "callback", "notify", "benachrichtigung", "ereignis"]
+docs = "event-subscriptions-endpoint"
+schema = ["event-subscriptions-endpoint-event-subscriptions-properties", "event-subscriptions-endpoint-webhook-callback-properties"]
+
+[[resources]]
+name = "files"
+title = "Files (Dateien / Belegbilder)"
+summary = "Upload bookkeeping voucher files (PDF, image, e-invoice XML) and download bookkeeping voucher files."
+keywords = ["datei", "dateien", "upload", "hochladen", "download", "herunterladen", "scan", "receipt", "beleg", "belegbild", "image", "bild", "attachment", "anhang", "pdf", "xml"]
+docs = "files-endpoint"
+schema = []
+
+[[resources]]
+name = "invoices"
+title = "Invoices (Rechnungen)"
+summary = "Sales invoices: create (draft or finalized), read, download PDF/XRechnung XML."
+keywords = ["rechnung", "rechnungen", "invoice", "bill", "faktura", "xrechnung", "zugferd", "e-rechnung", "einvoice", "closing invoice", "schlussrechnung"]
+docs = "invoices-endpoint"
+schema = ["invoices-endpoint-invoices-properties"]
+
+[[resources]]
+name = "order-confirmations"
+title = "Order confirmations (Auftragsbestätigungen)"
+summary = "Order confirmations: create (draft or finalized), read, download PDF."
+keywords = ["auftragsbestätigung", "auftragsbestaetigung", "auftragsbestätigungen", "auftrag", "order", "confirmation", "orderconfirmation"]
+docs = "order-confirmations-endpoint"
+schema = ["order-confirmations-endpoint-order-confirmations-properties"]
+
+[[resources]]
+name = "payments"
+title = "Payments (Zahlungen)"
+summary = "Payment status, open amount and payment items of a bookkeeping or sales voucher."
+keywords = ["zahlung", "zahlungen", "zahlungsstatus", "payment", "paid", "bezahlt", "open amount", "offener betrag", "offen", "balance", "skonto"]
+docs = "payments-endpoint"
+schema = ["payments-endpoint-payments-properties"]
+
+[[resources]]
+name = "payment-conditions"
+title = "Payment conditions (Zahlungsbedingungen)"
+summary = "Payment terms configured in Lexware (term duration, cash discount)."
+keywords = ["zahlungsbedingung", "zahlungsbedingungen", "zahlungsziel", "payment terms", "terms", "skonto", "discount"]
+docs = "payment-conditions-endpoint"
+schema = ["payment-conditions-endpoint-payment-conditions-properties"]
+
+[[resources]]
+name = "posting-categories"
+title = "Posting categories (Buchungskategorien)"
+summary = "Booking categories (categoryId) for bookkeeping vouchers, typed income or outgo."
+keywords = ["buchungskategorie", "buchungskategorien", "kategorie", "category", "categoryid", "booking", "konto", "account"]
+docs = "posting-categories-endpoint"
+schema = ["posting-categories-endpoint-posting-categories-properties"]
+
+[[resources]]
+name = "print-layouts"
+title = "Print layouts (Drucklayouts)"
+summary = "Print layouts that can be referenced when creating sales vouchers."
+keywords = ["drucklayout", "layout", "vorlage", "print", "template", "design"]
+docs = "print-layouts-endpoint"
+schema = ["print-layouts-endpoint-print-layout-properties"]
+
+[[resources]]
+name = "profile"
+title = "Profile (Profil)"
+summary = "Organization and connection info of the authenticated account (organizationId, company, user, features)."
+keywords = ["profil", "whoami", "me", "account", "organization", "organisation", "company", "user", "features", "connection", "auth"]
+docs = "profile-endpoint"
+schema = ["profile-endpoint-profile-properties"]
+
+[[resources]]
+name = "quotations"
+title = "Quotations (Angebote)"
+summary = "Quotations: create (draft or finalized), read, download PDF."
+keywords = ["angebot", "angebote", "quote", "offer", "quotation", "kostenvoranschlag", "estimate"]
+docs = "quotations-endpoint"
+schema = ["quotations-endpoint-quotations-properties"]
+
+[[resources]]
+name = "recurring-templates"
+title = "Recurring templates (Serienrechnungen)"
+summary = "Read-only templates of recurring invoices, executed nightly by Lexware."
+keywords = ["serienrechnung", "serienrechnungen", "wiederkehrend", "recurring", "abo", "subscription billing", "template", "vorlage"]
+docs = "recurring-templates-endpoint"
+schema = ["recurring-templates-endpoint-recurring-template-properties"]
+
+[[resources]]
+name = "voucherlist"
+title = "Voucher list (Belegliste)"
+summary = "Search metadata of all vouchers: invoices, credit notes, quotations, order confirmations, delivery notes, bookkeeping vouchers."
+keywords = ["belegliste", "belege", "voucher list", "documents", "search", "suche", "overdue", "offene posten", "open items", "unpaid", "unbezahlt", "draft", "entwurf", "list all"]
+docs = "voucherlist-endpoint"
+schema = ["voucherlist-endpoint-voucherlist-properties"]
+
+[[resources]]
+name = "vouchers"
+title = "Bookkeeping vouchers (Buchhaltungsbelege)"
+summary = "Bookkeeping vouchers (sales/purchase invoices and credit notes from external systems) with tax-rate positions and files."
+keywords = ["beleg", "belege", "buchungsbeleg", "eingangsrechnung", "eingangsbeleg", "ausgabe", "einnahme", "bookkeeping", "expense", "receipt", "purchase", "purchaseinvoice", "salesinvoice", "buchhaltung", "booking"]
+docs = "vouchers-endpoint"
+schema = ["vouchers-endpoint-voucher-properties"]
+
+[[resources]]
+name = "cash-boxes"
+title = "Cash boxes (Kassen)"
+summary = "Cash boxes (Kassenbuch) of the organization (Partner API only)."
+keywords = ["kasse", "kassen", "kassenbuch", "cash", "cashbox", "register", "pos"]
+docs = "cash-boxes-endpoint"
+schema = ["cash-boxes-endpoint-cash-box-properties"]
+access = "partner"
+
+[[resources]]
+name = "cash-box-balances"
+title = "Cash box balances (Kassenabschlüsse)"
+summary = "Daily cash box balances (Z-Bon) with positions (Partner API only)."
+keywords = ["kassenabschluss", "z-bon", "zbon", "tagesabschluss", "balance", "cash", "kasse"]
+docs = "cash-boxes-endpoint-create-a-cash-box-balance"
+schema = ["cash-boxes-endpoint-cash-box-balance-properties"]
+access = "partner"
+
+[[resources]]
+name = "finance-accounts"
+title = "Financial accounts (Finanzkonten)"
+summary = "Bank and payment provider accounts linked to Lexware (Partner API only)."
+keywords = ["finanzkonto", "bankkonto", "konto", "bank", "financial", "account", "giro", "payment provider", "paypal", "stripe", "iban"]
+docs = "finance-endpoint"
+schema = ["finance-endpoint-financial-accounts-properties"]
+access = "partner"
+
+[[resources]]
+name = "finance-transactions"
+title = "Financial transactions (Kontoumsätze)"
+summary = "Bank / payment provider transactions of financial accounts (Partner API only)."
+keywords = ["transaktion", "transaktionen", "umsatz", "umsätze", "kontoumsatz", "buchung", "transaction", "statement", "bank", "fee", "gebühr"]
+docs = "finance-endpoint-financial-transactions-properties"
+schema = ["finance-endpoint-financial-transactions-properties"]
+access = "partner"
+
+[[resources]]
+name = "organization"
+title = "Organization (Organisation)"
+summary = "Company master data: address, tax numbers, organization type (Partner API only)."
+keywords = ["organisation", "organization", "firma", "company", "stammdaten", "steuernummer", "ust-idnr", "vat", "address"]
+docs = "organization-endpoint"
+schema = ["organization-endpoint-organization-properties"]
+access = "partner"
+
+[[resources]]
+name = "partner-integrations"
+title = "Partner integrations"
+summary = "Client-specific integration status shown in Lexware (Partner API only, cross-system integrations)."
+keywords = ["partner", "integration", "status", "connection"]
+docs = "partner-integrations-endpoint"
+schema = ["partner-integrations-endpoint-partner-integrations-properties"]
+access = "partner"
+
+[[resources]]
+name = "transaction-assignment-hints"
+title = "Transaction assignment hints (Zuordnungshinweise)"
+summary = "Hints that map a voucher to a bank transaction for automatic assignment (Partner API only)."
+keywords = ["zuordnung", "assignment", "hint", "reconcile", "abgleich", "matching", "endtoendid", "transaction"]
+docs = "transaction-assignment-hint-endpoint"
+schema = ["transaction-assignment-hint-endpoint-transaction-assignment-hint-properties"]
+access = "partner"
+
+# ---------------------------------------------------------------------------
+# Articles
+# ---------------------------------------------------------------------------
+
+[[operations]]
+id = "articles.list"
+method = "GET"
+path = "/v1/articles"
+summary = "List/filter articles (paged)"
+docs = "articles-endpoint-filtering-articles"
+scopes = ["articles.read"]
+max_page_size = 250
+keywords = ["search", "find", "filter"]
+query = [
+  { name = "articleNumber", type = "string", description = "Return the article with this article number." },
+  { name = "gtin", type = "string", description = "Return articles with this GTIN/EAN." },
+  { name = "type", type = "enum", values = ["PRODUCT", "SERVICE"], description = "Filter by article type." },
+]
+
+[[operations]]
+id = "articles.get"
+method = "GET"
+path = "/v1/articles/{id}"
+summary = "Retrieve an article"
+docs = "articles-endpoint-retrieve-an-article"
+scopes = ["articles.read"]
+
+[[operations]]
+id = "articles.create"
+method = "POST"
+path = "/v1/articles"
+summary = "Create an article"
+docs = "articles-endpoint-create-an-article"
+scopes = ["articles.write"]
+body = "json"
+notes = ["Required: title, type (PRODUCT|SERVICE), unitName, price{leadingPrice (NET|GROSS), taxRate, netPrice or grossPrice}."]
+
+[[operations]]
+id = "articles.update"
+method = "PUT"
+path = "/v1/articles/{id}"
+summary = "Update an article (full replace; needs current version)"
+docs = "articles-endpoint-update-an-article"
+scopes = ["articles.write"]
+body = "json"
+merge_from = "articles.get"
+
+[[operations]]
+id = "articles.delete"
+method = "DELETE"
+path = "/v1/articles/{id}"
+summary = "Delete an article"
+docs = "articles-endpoint-delete-an-article"
+scopes = ["articles.write"]
+response = "empty"
+confirm = "Permanently deletes the article."
+
+# ---------------------------------------------------------------------------
+# Contacts
+# ---------------------------------------------------------------------------
+
+[[operations]]
+id = "contacts.list"
+method = "GET"
+path = "/v1/contacts"
+summary = "List/filter contacts by name, email, number or role (paged)"
+docs = "contacts-endpoint-filtering-contacts"
+scopes = ["contacts.read"]
+max_page_size = 250
+keywords = ["search", "find", "filter", "customers", "vendors"]
+notes = [
+  "Filters are ANDed. email and name need at least 3 characters.",
+  "email/name support SQL-like wildcards: _ matches one character, % any sequence; escape with \\_ for a literal underscore.",
+  "The CLI HTML-escapes &, < and > in email/name as Lexware requires (e.g. 'Johnson & Partner').",
+]
+query = [
+  { name = "email", type = "string", html_encode = true, description = "Match any email address of the contact or its company contact persons (min. 3 chars)." },
+  { name = "name", type = "string", html_encode = true, description = "Match the contact name (min. 3 chars)." },
+  { name = "number", type = "integer", description = "Customer or vendor number." },
+  { name = "customer", type = "boolean", description = "true: only contacts with customer role; false: only without." },
+  { name = "vendor", type = "boolean", description = "true: only contacts with vendor role; false: only without." },
+]
+
+[[operations]]
+id = "contacts.get"
+method = "GET"
+path = "/v1/contacts/{id}"
+summary = "Retrieve a contact"
+docs = "contacts-endpoint-retrieve-a-contact"
+scopes = ["contacts.read"]
+
+[[operations]]
+id = "contacts.create"
+method = "POST"
+path = "/v1/contacts"
+summary = "Create a contact (customer and/or vendor)"
+docs = "contacts-endpoint-create-a-contact"
+scopes = ["contacts.write"]
+body = "json"
+notes = [
+  "Required: version=0, roles (e.g. {\"customer\":{}}), and either company{name} or person{lastName}.",
+  "Addresses need countryCode (ISO 3166 alpha-2). Contacts cannot be deleted via the API.",
+]
+
+[[operations]]
+id = "contacts.update"
+method = "PUT"
+path = "/v1/contacts/{id}"
+summary = "Update a contact (full replace; needs current version)"
+docs = "contacts-endpoint-update-a-contact"
+scopes = ["contacts.write"]
+body = "json"
+merge_from = "contacts.get"
+
+[[operations]]
+id = "contact-bank-accounts.list"
+method = "GET"
+path = "/v1/contacts/{contactId}/bankaccounts"
+summary = "List the bank accounts of a contact"
+docs = "contacts-endpoint-retrieve-contacts-39-bank-accounts"
+scopes = ["contacts.bankaccounts.read"]
+
+[[operations]]
+id = "contact-bank-accounts.get"
+method = "GET"
+path = "/v1/contacts/{contactId}/bankaccounts/{bankAccountId}"
+summary = "Retrieve one bank account of a contact"
+docs = "contacts-endpoint-retrieve-a-contact-39-s-bank-account"
+scopes = ["contacts.bankaccounts.read"]
+
+[[operations]]
+id = "contact-bank-accounts.create"
+method = "POST"
+path = "/v1/contacts/{contactId}/bankaccounts"
+summary = "Add a bank account to a contact"
+docs = "contacts-endpoint-create-a-contact-39-s-bank-account"
+scopes = ["contacts.bankaccounts.write"]
+body = "json"
+notes = ["Required: accountHolder, bankName, iban, bic."]
+
+[[operations]]
+id = "contact-bank-accounts.update"
+method = "PUT"
+path = "/v1/contacts/{contactId}/bankaccounts/{bankAccountId}"
+summary = "Update a bank account of a contact"
+docs = "contacts-endpoint-update-a-contact-39-s-bank-account"
+scopes = ["contacts.bankaccounts.write"]
+body = "json"
+merge_from = "contact-bank-accounts.get"
+notes = ["version refers to the contact's version and is mandatory."]
+
+[[operations]]
+id = "contact-bank-accounts.delete"
+method = "DELETE"
+path = "/v1/contacts/{contactId}/bankaccounts/{bankAccountId}"
+summary = "Delete a bank account of a contact"
+docs = "contacts-endpoint-delete-a-contact-39-s-bank-account"
+scopes = ["contacts.bankaccounts.write"]
+response = "empty"
+confirm = "Permanently deletes the contact's bank account."
+
+# ---------------------------------------------------------------------------
+# Reference data
+# ---------------------------------------------------------------------------
+
+[[operations]]
+id = "countries.list"
+method = "GET"
+path = "/v1/countries"
+summary = "List countries with tax classification"
+docs = "countries-endpoint-retrieve-list-of-countries"
+
+[[operations]]
+id = "payment-conditions.list"
+method = "GET"
+path = "/v1/payment-conditions"
+summary = "List configured payment conditions"
+docs = "payment-conditions-endpoint-retrieve-list-of-payment-conditions"
+
+[[operations]]
+id = "posting-categories.list"
+method = "GET"
+path = "/v1/posting-categories"
+summary = "List posting categories (categoryId for bookkeeping vouchers)"
+docs = "posting-categories-endpoint-retrieve-list-of-posting-categories"
+notes = ["type income -> salesinvoice/salescreditnote; type outgo -> purchaseinvoice/purchasecreditnote."]
+
+[[operations]]
+id = "print-layouts.list"
+method = "GET"
+path = "/v1/print-layouts"
+summary = "List print layouts for sales vouchers"
+docs = "print-layouts-endpoint-retrieve-list-of-print-layouts"
+
+[[operations]]
+id = "profile.get"
+method = "GET"
+path = "/v1/profile"
+summary = "Show organization, user and connection of the current credentials"
+docs = "profile-endpoint-retrieve-profile-information"
+scopes = ["profile.read"]
+keywords = ["whoami", "who am i", "my account", "logged in", "organization id", "check", "test", "ping"]
+
+# ---------------------------------------------------------------------------
+# Credit notes
+# ---------------------------------------------------------------------------
+
+[[operations]]
+id = "credit-notes.create"
+method = "POST"
+path = "/v1/credit-notes"
+quota = "outgoing-vouchers"
+summary = "Create a credit note (draft by default; --finalize for status open)"
+docs = "credit-notes-endpoint-create-a-credit-note"
+scopes = ["credit-notes.write"]
+body = "json"
+keywords = ["pursue", "folgebeleg", "from invoice"]
+notes = [
+  "Use --preceding-sales-voucher-id <invoiceId> to pursue an invoice; a finalized related credit note is immediately paidoff and reduces the invoice's open amount.",
+  "Required: voucherDate, address (contactId or name+countryCode), lineItems, totalPrice{currency}, taxConditions{taxType}.",
+]
+query = [
+  { name = "finalize", type = "flag", description = "Create finalized (status open) instead of draft.", confirm = "Finalized credit notes get a voucher number, are legally binding and cannot be edited or deleted via the API." },
+  { name = "precedingSalesVoucherId", type = "uuid", description = "Pursue: create from this preceding sales voucher (usually an invoice)." },
+]
+
+[[operations]]
+id = "credit-notes.get"
+method = "GET"
+path = "/v1/credit-notes/{id}"
+summary = "Retrieve a credit note"
+docs = "credit-notes-endpoint-retrieve-a-credit-note"
+scopes = ["credit-notes.read"]
+
+[[operations]]
+id = "credit-notes.download"
+method = "GET"
+path = "/v1/credit-notes/{id}/file"
+summary = "Download the credit note document (PDF, or XRechnung XML)"
+docs = "credit-notes-endpoint-download-a-credit-note-file"
+scopes = ["credit-notes.read"]
+response = "binary"
+accept = ["*/*", "application/pdf", "application/xml"]
+keywords = ["pdf", "file", "document", "xml", "xrechnung"]
+notes = ["Only finalized vouchers have a document; drafts return 409."]
+
+[[operations]]
+id = "credit-notes.render-document"
+method = "GET"
+path = "/v1/credit-notes/{id}/document"
+summary = "Render the credit note PDF and return its documentFileId"
+docs = "credit-notes-endpoint-render-a-credit-note-document-pdf"
+scopes = ["credit-notes.read"]
+deprecated = "Use `credit-notes download` instead."
+
+[[operations]]
+id = "credit-notes.send-email"
+method = "POST"
+path = "/v1/credit-notes/{id}/sendmail"
+quota = "outgoing-vouchers"
+summary = "Send the credit note by email via Lexware"
+docs = "credit-notes-endpoint-sending-a-credit-note-via-e-mail"
+access = "partner"
+scopes = ["credit-notes.write"]
+body = "json"
+keywords = ["email", "mail", "send", "versenden"]
+confirm = "Sends an email to external recipients; this cannot be undone."
+notes = ["Body: {\"recipients\": [\"a@b.de\"], \"subject\"?, \"message\"?, \"signature\"?, \"attachments\"?: [{id, fileName, fileExtension}]}. Attachments must be uploaded first with `files upload --type attachment`."]
+
+# ---------------------------------------------------------------------------
+# Delivery notes
+# ---------------------------------------------------------------------------
+
+[[operations]]
+id = "delivery-notes.create"
+method = "POST"
+path = "/v1/delivery-notes"
+quota = "outgoing-vouchers"
+summary = "Create a delivery note (draft by default; --finalize for status open)"
+docs = "delivery-notes-endpoint-create-a-delivery-note"
+scopes = ["delivery-notes.write"]
+body = "json"
+keywords = ["pursue", "folgebeleg", "from invoice"]
+notes = ["Required: voucherDate, address, lineItems, taxConditions{taxType}, shippingConditions{shippingType}. Delivery notes carry no prices or payment conditions."]
+query = [
+  { name = "finalize", type = "flag", description = "Create finalized (status open) instead of draft.", confirm = "Finalized delivery notes get a voucher number and cannot be edited or deleted via the API." },
+  { name = "precedingSalesVoucherId", type = "uuid", description = "Pursue: create from this preceding sales voucher (e.g. an invoice or order confirmation)." },
+]
+
+[[operations]]
+id = "delivery-notes.get"
+method = "GET"
+path = "/v1/delivery-notes/{id}"
+summary = "Retrieve a delivery note"
+docs = "delivery-notes-endpoint-retrieve-a-delivery-note"
+scopes = ["delivery-notes.read"]
+
+[[operations]]
+id = "delivery-notes.download"
+method = "GET"
+path = "/v1/delivery-notes/{id}/file"
+summary = "Download the delivery note PDF"
+docs = "delivery-notes-endpoint-download-a-delivery-note-file"
+scopes = ["delivery-notes.read"]
+response = "binary"
+accept = ["*/*", "application/pdf"]
+keywords = ["pdf", "file", "document"]
+notes = ["Only finalized vouchers have a document; drafts return 409."]
+
+[[operations]]
+id = "delivery-notes.render-document"
+method = "GET"
+path = "/v1/delivery-notes/{id}/document"
+summary = "Render the delivery note PDF and return its documentFileId"
+docs = "delivery-notes-endpoint-render-a-delivery-note-document-pdf"
+scopes = ["delivery-notes.read"]
+deprecated = "Use `delivery-notes download` instead."
+
+[[operations]]
+id = "delivery-notes.send-email"
+method = "POST"
+path = "/v1/delivery-notes/{id}/sendmail"
+quota = "outgoing-vouchers"
+summary = "Send the delivery note by email via Lexware"
+docs = "delivery-notes-endpoint-sending-a-delivery-note-via-e-mail"
+access = "partner"
+scopes = ["delivery-notes.write"]
+body = "json"
+keywords = ["email", "mail", "send", "versenden"]
+confirm = "Sends an email to external recipients; this cannot be undone."
+notes = ["Body: {\"recipients\": [\"a@b.de\"], \"subject\"?, \"message\"?, \"signature\"?, \"attachments\"?}."]
+
+# ---------------------------------------------------------------------------
+# Dunnings
+# ---------------------------------------------------------------------------
+
+[[operations]]
+id = "dunnings.create"
+method = "POST"
+path = "/v1/dunnings"
+quota = "outgoing-vouchers"
+summary = "Create a dunning (Mahnung) for an invoice; always a draft"
+docs = "dunnings-endpoint-create-a-dunning"
+scopes = ["dunnings.write"]
+body = "json"
+keywords = ["pursue", "remind", "mahnen"]
+notes = [
+  "The contactId and taxConditions must match the referenced invoice; address.name is copied from it.",
+  "Required: voucherDate, address, lineItems, totalPrice, taxConditions, shippingConditions.",
+]
+query = [
+  { name = "precedingSalesVoucherId", type = "uuid", required = true, description = "The invoice (or down payment invoice) being dunned." },
+]
+
+[[operations]]
+id = "dunnings.get"
+method = "GET"
+path = "/v1/dunnings/{id}"
+summary = "Retrieve a dunning"
+docs = "dunnings-endpoint-retrieve-a-dunning"
+scopes = ["dunnings.read"]
+
+[[operations]]
+id = "dunnings.download"
+method = "GET"
+path = "/v1/dunnings/{id}/file"
+summary = "Download the dunning PDF"
+docs = "dunnings-endpoint-download-a-dunning-file"
+scopes = ["dunnings.read"]
+response = "binary"
+accept = ["*/*", "application/pdf"]
+keywords = ["pdf", "file", "document"]
+notes = ["Only finalized vouchers have a document; drafts return 409."]
+
+[[operations]]
+id = "dunnings.render-document"
+method = "GET"
+path = "/v1/dunnings/{id}/document"
+summary = "Render the dunning PDF and return its documentFileId"
+docs = "dunnings-endpoint-render-a-dunning-document-pdf"
+scopes = ["dunnings.read"]
+deprecated = "Use `dunnings download` instead."
+
+[[operations]]
+id = "dunnings.send-email"
+method = "POST"
+path = "/v1/dunnings/{id}/sendmail"
+quota = "outgoing-vouchers"
+summary = "Send the dunning by email via Lexware"
+docs = "dunnings-endpoint-sending-a-dunning-via-e-mail"
+access = "partner"
+scopes = ["dunnings.write"]
+body = "json"
+keywords = ["email", "mail", "send", "versenden"]
+confirm = "Sends an email to external recipients; this cannot be undone."
+notes = ["Body: {\"recipients\": [\"a@b.de\"], \"subject\"?, \"message\"?, \"signature\"?, \"attachments\"?}."]
+
+# ---------------------------------------------------------------------------
+# Down payment invoices
+# ---------------------------------------------------------------------------
+
+[[operations]]
+id = "down-payment-invoices.get"
+method = "GET"
+path = "/v1/down-payment-invoices/{id}"
+summary = "Retrieve a down payment invoice"
+docs = "down-payment-invoices-endpoint-retrieve-a-down-payment-invoice"
+scopes = ["invoices.read"]
+
+[[operations]]
+id = "down-payment-invoices.download"
+method = "GET"
+path = "/v1/down-payment-invoices/{id}/file"
+summary = "Download the down payment invoice document (PDF, or XRechnung XML)"
+docs = "down-payment-invoices-endpoint-download-a-down-payment-invoice-file"
+scopes = ["invoices.read"]
+response = "binary"
+accept = ["*/*", "application/pdf", "application/xml"]
+keywords = ["pdf", "file", "document", "xml", "xrechnung"]
+
+# ---------------------------------------------------------------------------
+# Event subscriptions (webhooks)
+# ---------------------------------------------------------------------------
+
+[[operations]]
+id = "event-subscriptions.list"
+method = "GET"
+path = "/v1/event-subscriptions"
+summary = "List all event subscriptions"
+docs = "event-subscriptions-endpoint-retrieve-all-event-subscriptions"
+
+[[operations]]
+id = "event-subscriptions.get"
+method = "GET"
+path = "/v1/event-subscriptions/{id}"
+summary = "Retrieve an event subscription"
+docs = "event-subscriptions-endpoint-retrieve-an-event-subscription"
+
+[[operations]]
+id = "event-subscriptions.create"
+method = "POST"
+path = "/v1/event-subscriptions"
+summary = "Subscribe a webhook callback URL to an event type"
+docs = "event-subscriptions-endpoint-create-an-event-subscription"
+body = "json"
+keywords = ["subscribe", "register", "webhook"]
+notes = [
+  "Body: {\"eventType\": \"invoice.status.changed\", \"callbackUrl\": \"https://...\"}. Lexware sends a HEAD request to check the TLS certificate (Grade A required); failure returns 406.",
+  "Event types: article|contact|credit-note|delivery-note|down-payment-invoice|dunning|invoice|order-confirmation|quotation|recurring-template|voucher + .created/.changed/.deleted, *.status.changed (not for article/contact/dunning/recurring-template), payment.changed, token.revoked.",
+  "Callbacks are POSTed with header X-Lxo-Signature (base64 RSA-SHA512 over the body). Respond within 5 s with 2xx; 404/410 remove the subscription.",
+]
+
+[[operations]]
+id = "event-subscriptions.delete"
+method = "DELETE"
+path = "/v1/event-subscriptions/{id}"
+summary = "Delete an event subscription"
+docs = "event-subscriptions-endpoint-delete-an-event-subscription"
+response = "empty"
+confirm = "Stops webhook delivery for this subscription."
+keywords = ["unsubscribe", "remove webhook"]
+
+# ---------------------------------------------------------------------------
+# Files
+# ---------------------------------------------------------------------------
+
+[[operations]]
+id = "files.upload"
+method = "POST"
+path = "/v1/files"
+summary = "Upload a file (bookkeeping voucher image/PDF/e-invoice XML, or email attachment)"
+docs = "files-endpoint-upload-a-file"
+scopes = ["files.write"]
+body = "multipart"
+keywords = ["upload", "hochladen", "scan", "receipt", "beleg", "attachment"]
+notes = [
+  "--type voucher: pdf, jpg, png or xml up to 5 MB; Lexware creates an 'unchecked' voucher and returns {id, voucherId} with HTTP 202.",
+  "--type attachment (Partner API): pdf, jpg or png up to 2 MB, for use in send-email attachments.",
+]
+form = [
+  { name = "type", values = ["voucher", "attachment"], default = "voucher", description = "Upload type." },
+]
+upload = [
+  { type = "voucher", max_mb = 5, extensions = ["pdf", "jpg", "jpeg", "png", "xml"] },
+  { type = "attachment", max_mb = 2, extensions = ["pdf", "jpg", "jpeg", "png"] },
+]
+
+[[operations]]
+id = "files.download"
+method = "GET"
+path = "/v1/files/{id}"
+summary = "Download a bookkeeping voucher file"
+docs = "files-endpoint-download-a-file"
+scopes = ["files.read"]
+response = "binary"
+accept = ["*/*", "application/pdf", "application/xml", "image/png", "image/jpeg"]
+keywords = ["download", "pdf", "image", "xml", "e-invoice"]
+notes = ["For sales vouchers (invoices, quotations, ...) use `<resource> download` instead. Use --accept application/xml to get the XML of an e-invoice voucher."]
+
+[[operations]]
+id = "files.status"
+method = "GET"
+path = "/v1/files/{id}/status"
+summary = "Retrieve the processing status of an uploaded file"
+docs = "files-endpoint-retrieve-file-upload-status"
+access = "partner"
+scopes = ["files.read"]
+deprecated = "The upload endpoint now only returns 202 on success."
+
+# ---------------------------------------------------------------------------
+# Invoices
+# ---------------------------------------------------------------------------
+
+[[operations]]
+id = "invoices.create"
+method = "POST"
+path = "/v1/invoices"
+quota = "outgoing-vouchers"
+summary = "Create an invoice (draft by default; --finalize for status open)"
+docs = "invoices-endpoint-create-an-invoice"
+scopes = ["invoices.write"]
+body = "json"
+keywords = ["pursue", "folgebeleg", "from quotation", "bill", "xrechnung"]
+notes = [
+  "Required: voucherDate, address (contactId, or name+countryCode), lineItems, totalPrice{currency}, taxConditions{taxType}, shippingConditions{shippingType}.",
+  "A referenced contact (address.contactId) must have exactly one billing address, otherwise 406; add one with `contacts update <id> --merge --set 'addresses.billing=[{\"street\":\"...\",\"zip\":\"...\",\"city\":\"...\",\"countryCode\":\"DE\"}]'`.",
+  "Line item types: custom, material, service (reference an article id), text. Max 300 line items. Dates must look like 2026-01-31T00:00:00.000+01:00.",
+  "The status cannot be changed via the API later; drafts can be finalized only in the Lexware web app.",
+]
+query = [
+  { name = "finalize", type = "flag", description = "Create finalized (status open) instead of draft.", confirm = "Finalized invoices get an invoice number, are legally binding (GoBD) and cannot be edited or deleted via the API." },
+  { name = "precedingSalesVoucherId", type = "uuid", description = "Pursue: create from this preceding sales voucher (quotation, order confirmation, ...)." },
+]
+
+[[operations]]
+id = "invoices.get"
+method = "GET"
+path = "/v1/invoices/{id}"
+summary = "Retrieve an invoice (also closing invoices)"
+docs = "invoices-endpoint-retrieve-an-invoice"
+scopes = ["invoices.read"]
+
+[[operations]]
+id = "invoices.download"
+method = "GET"
+path = "/v1/invoices/{id}/file"
+summary = "Download the invoice document (PDF, or XRechnung XML)"
+docs = "invoices-endpoint-download-an-invoice-file"
+scopes = ["invoices.read"]
+response = "binary"
+accept = ["*/*", "application/pdf", "application/xml"]
+keywords = ["pdf", "file", "document", "xml", "xrechnung", "e-invoice"]
+notes = [
+  "Only finalized invoices have a document; drafts return 409.",
+  "XRechnung invoices default to XML with */*; pass --accept application/pdf for the (non-binding) PDF preview.",
+]
+
+[[operations]]
+id = "invoices.render-document"
+method = "GET"
+path = "/v1/invoices/{id}/document"
+summary = "Render the invoice PDF and return its documentFileId"
+docs = "invoices-endpoint-render-an-invoice-document-pdf"
+scopes = ["invoices.read"]
+deprecated = "Use `invoices download` instead."
+
+[[operations]]
+id = "invoices.send-email"
+method = "POST"
+path = "/v1/invoices/{id}/sendmail"
+quota = "outgoing-vouchers"
+summary = "Send the invoice by email via Lexware"
+docs = "invoices-endpoint-sending-an-invoice-via-e-mail"
+access = "partner"
+scopes = ["invoices.write"]
+body = "json"
+keywords = ["email", "mail", "send", "versenden"]
+confirm = "Sends an email to external recipients; this cannot be undone."
+notes = [
+  "Body: {\"recipients\": [\"a@b.de\"], \"subject\"?, \"message\"?, \"signature\"?, \"attachments\"?: [{id, fileName, fileExtension}]}.",
+  "Include \\n\\n{sharedLink}\\n in message to add the 'Beleglink teilen' link. Mailing has an extra rate limit (429).",
+]
+
+[[operations]]
+id = "invoices.get-interaction-status"
+method = "GET"
+path = "/v1/invoices/{id}/interaction-status"
+summary = "Retrieve the interaction status of an invoice (cross-system integrations)"
+docs = "invoices-endpoint-interaction-status-of-an-invoice-retrieve-an-invoice-interaction-status"
+access = "partner"
+scopes = ["invoices.read"]
+
+[[operations]]
+id = "invoices.update-interaction-status"
+method = "PUT"
+path = "/v1/invoices/{id}/interaction-status"
+summary = "Set the interaction status of an invoice to accepted or rejected"
+docs = "invoices-endpoint-interaction-status-of-an-invoice-update-an-invoice-interaction-status"
+access = "partner"
+scopes = ["invoices.read"]
+body = "json"
+merge_from = "invoices.get-interaction-status"
+notes = ["Body: {\"status\": \"accepted\"|\"rejected\", \"version\": <current>}."]
+
+# ---------------------------------------------------------------------------
+# Order confirmations
+# ---------------------------------------------------------------------------
+
+[[operations]]
+id = "order-confirmations.create"
+method = "POST"
+path = "/v1/order-confirmations"
+quota = "outgoing-vouchers"
+summary = "Create an order confirmation (draft by default; --finalize for status open)"
+docs = "order-confirmations-endpoint-create-an-order-confirmation"
+scopes = ["order-confirmations.write"]
+body = "json"
+keywords = ["pursue", "folgebeleg", "from quotation"]
+notes = ["Required: voucherDate, address, lineItems, totalPrice{currency}, taxConditions{taxType}, shippingConditions{shippingType}."]
+query = [
+  { name = "finalize", type = "flag", description = "Create finalized (status open) instead of draft.", confirm = "Finalized order confirmations get a voucher number and cannot be edited or deleted via the API." },
+  { name = "precedingSalesVoucherId", type = "uuid", description = "Pursue: create from this preceding sales voucher (usually a quotation)." },
+]
+
+[[operations]]
+id = "order-confirmations.get"
+method = "GET"
+path = "/v1/order-confirmations/{id}"
+summary = "Retrieve an order confirmation"
+docs = "order-confirmations-endpoint-retrieve-an-order-confirmation"
+scopes = ["order-confirmations.read"]
+
+[[operations]]
+id = "order-confirmations.download"
+method = "GET"
+path = "/v1/order-confirmations/{id}/file"
+summary = "Download the order confirmation PDF"
+docs = "order-confirmations-endpoint-download-an-order-confirmation-file"
+scopes = ["order-confirmations.read"]
+response = "binary"
+accept = ["*/*", "application/pdf"]
+keywords = ["pdf", "file", "document"]
+notes = ["Only finalized vouchers have a document; drafts return 409."]
+
+[[operations]]
+id = "order-confirmations.render-document"
+method = "GET"
+path = "/v1/order-confirmations/{id}/document"
+summary = "Render the order confirmation PDF and return its documentFileId"
+docs = "order-confirmations-endpoint-render-an-order-confirmation-document-pdf"
+scopes = ["order-confirmations.read"]
+deprecated = "Use `order-confirmations download` instead."
+
+[[operations]]
+id = "order-confirmations.send-email"
+method = "POST"
+path = "/v1/order-confirmations/{id}/sendmail"
+quota = "outgoing-vouchers"
+summary = "Send the order confirmation by email via Lexware"
+docs = "order-confirmations-endpoint-sending-an-order-confirmation-via-e-mail"
+access = "partner"
+scopes = ["order-confirmations.write"]
+body = "json"
+keywords = ["email", "mail", "send", "versenden"]
+confirm = "Sends an email to external recipients; this cannot be undone."
+notes = ["Body: {\"recipients\": [\"a@b.de\"], \"subject\"?, \"message\"?, \"signature\"?, \"attachments\"?}."]
+
+# ---------------------------------------------------------------------------
+# Payments
+# ---------------------------------------------------------------------------
+
+[[operations]]
+id = "payments.get"
+method = "GET"
+path = "/v1/payments/{voucherId}"
+summary = "Retrieve payment status and payment items of a voucher"
+docs = "payments-endpoint-retrieve-payment-information"
+scopes = ["payments.read"]
+keywords = ["paid", "bezahlt", "open amount", "status"]
+notes = ["Works for invoices, credit notes, down payment invoices and bookkeeping vouchers. Drafts return 406."]
+
+# ---------------------------------------------------------------------------
+# Quotations
+# ---------------------------------------------------------------------------
+
+[[operations]]
+id = "quotations.create"
+method = "POST"
+path = "/v1/quotations"
+quota = "outgoing-vouchers"
+summary = "Create a quotation (draft by default; --finalize for status open)"
+docs = "quotations-endpoint-create-a-quotation"
+scopes = ["quotations.write"]
+body = "json"
+keywords = ["offer", "angebot erstellen"]
+notes = ["Required: voucherDate, expirationDate, address, lineItems, totalPrice{currency}, taxConditions{taxType}."]
+query = [
+  { name = "finalize", type = "flag", description = "Create finalized (status open) instead of draft.", confirm = "Finalized quotations get a voucher number and cannot be edited or deleted via the API." },
+]
+
+[[operations]]
+id = "quotations.get"
+method = "GET"
+path = "/v1/quotations/{id}"
+summary = "Retrieve a quotation"
+docs = "quotations-endpoint-retrieve-a-quotation"
+scopes = ["quotations.read"]
+
+[[operations]]
+id = "quotations.download"
+method = "GET"
+path = "/v1/quotations/{id}/file"
+summary = "Download the quotation PDF"
+docs = "quotations-endpoint-download-a-quotation-file"
+scopes = ["quotations.read"]
+response = "binary"
+accept = ["*/*", "application/pdf"]
+keywords = ["pdf", "file", "document"]
+notes = ["Only finalized vouchers have a document; drafts return 409."]
+
+[[operations]]
+id = "quotations.render-document"
+method = "GET"
+path = "/v1/quotations/{id}/document"
+summary = "Render the quotation PDF and return its documentFileId"
+docs = "quotations-endpoint-render-a-quotation-document-pdf"
+scopes = ["quotations.read"]
+deprecated = "Use `quotations download` instead."
+
+[[operations]]
+id = "quotations.send-email"
+method = "POST"
+path = "/v1/quotations/{id}/sendmail"
+quota = "outgoing-vouchers"
+summary = "Send the quotation by email via Lexware"
+docs = "quotations-endpoint-sending-a-quotation-via-e-mail"
+access = "partner"
+scopes = ["quotations.write"]
+body = "json"
+keywords = ["email", "mail", "send", "versenden"]
+confirm = "Sends an email to external recipients; this cannot be undone."
+notes = ["Body: {\"recipients\": [\"a@b.de\"], \"subject\"?, \"message\"?, \"signature\"?, \"attachments\"?}."]
+
+# ---------------------------------------------------------------------------
+# Recurring templates
+# ---------------------------------------------------------------------------
+
+[[operations]]
+id = "recurring-templates.list"
+method = "GET"
+path = "/v1/recurring-templates"
+summary = "List recurring invoice templates (paged)"
+docs = "recurring-templates-endpoint-retrieve-all-recurring-templates"
+scopes = ["recurring-templates.read"]
+max_page_size = 250
+sort = ["createdDate", "updatedDate", "lastExecutionDate", "nextExecutionDate"]
+notes = ["Default sort is updatedDate,DESC. Next template to run: --size 1 --sort nextExecutionDate,ASC."]
+
+[[operations]]
+id = "recurring-templates.get"
+method = "GET"
+path = "/v1/recurring-templates/{id}"
+summary = "Retrieve a recurring invoice template"
+docs = "recurring-templates-endpoint-retrieve-a-recurring-template"
+scopes = ["recurring-templates.read"]
+
+# ---------------------------------------------------------------------------
+# Voucher list
+# ---------------------------------------------------------------------------
+
+[[operations]]
+id = "voucherlist.list"
+method = "GET"
+path = "/v1/voucherlist"
+summary = "Search vouchers of all types by type, status, contact, dates or number (paged)"
+docs = "voucherlist-endpoint-retrieve-and-filter-voucherlist"
+scopes = ["voucherlist.read"]
+max_page_size = 250
+sort = ["voucherDate", "voucherNumber", "createdDate", "updatedDate"]
+keywords = ["search", "find", "filter", "overdue", "unpaid", "open", "draft", "all invoices", "list invoices", "list quotations"]
+notes = [
+  "Returns metadata only; fetch details with the endpoint matching voucherType (invoice -> invoices get, salesinvoice/purchaseinvoice -> vouchers get, ...).",
+  "At most 10,000 results per query ('Maximum search window size exceeded'): narrow date ranges if you hit it.",
+  "Date filters take yyyy-MM-dd and cover the full day in CET/CEST.",
+]
+query = [
+  { name = "voucherType", type = "csv", default = "any", open_enum = true, values = ["any", "salesinvoice", "salescreditnote", "purchaseinvoice", "purchasecreditnote", "invoice", "downpaymentinvoice", "creditnote", "orderconfirmation", "quotation", "deliverynote"], description = "Comma-separated voucher types, or any." },
+  { name = "voucherStatus", type = "csv", default = "any", open_enum = true, values = ["any", "draft", "open", "overdue", "paid", "paidoff", "voided", "transferred", "sepadebit", "accepted", "rejected", "unchecked"], description = "Comma-separated voucher states, or any." },
+  { name = "archived", type = "boolean", description = "Only archived (true) or non-archived (false) vouchers." },
+  { name = "contactId", type = "uuid", description = "Only vouchers of this contact." },
+  { name = "voucherDateFrom", type = "date", description = "Voucher date from (yyyy-MM-dd, inclusive)." },
+  { name = "voucherDateTo", type = "date", description = "Voucher date to (yyyy-MM-dd, inclusive)." },
+  { name = "createdDateFrom", type = "date", description = "Created date from (yyyy-MM-dd, inclusive)." },
+  { name = "createdDateTo", type = "date", description = "Created date to (yyyy-MM-dd, inclusive)." },
+  { name = "updatedDateFrom", type = "date", description = "Updated date from (yyyy-MM-dd, inclusive)." },
+  { name = "updatedDateTo", type = "date", description = "Updated date to (yyyy-MM-dd, inclusive)." },
+  { name = "voucherNumber", type = "string", html_encode = true, description = "Exact voucher number." },
+]
+
+# ---------------------------------------------------------------------------
+# Bookkeeping vouchers
+# ---------------------------------------------------------------------------
+
+[[operations]]
+id = "vouchers.list"
+method = "GET"
+path = "/v1/vouchers"
+summary = "Find bookkeeping vouchers by voucher number (paged)"
+docs = "vouchers-endpoint-filtering-vouchers"
+scopes = ["vouchers.read"]
+max_page_size = 250
+keywords = ["find", "search", "number"]
+notes = ["Lexware deprecated filtering here; prefer `voucherlist list --voucher-number`."]
+query = [
+  { name = "voucherNumber", type = "string", html_encode = true, description = "Exact voucher number." },
+]
+
+[[operations]]
+id = "vouchers.get"
+method = "GET"
+path = "/v1/vouchers/{id}"
+summary = "Retrieve a bookkeeping voucher"
+docs = "vouchers-endpoint-retrieve-a-voucher"
+scopes = ["vouchers.read"]
+
+[[operations]]
+id = "vouchers.create"
+method = "POST"
+path = "/v1/vouchers"
+summary = "Create a bookkeeping voucher (sales/purchase invoice or credit note)"
+docs = "vouchers-endpoint-create-a-voucher"
+scopes = ["vouchers.write"]
+body = "json"
+keywords = ["book", "buchen", "expense", "ausgabe", "einnahme", "receipt"]
+notes = [
+  "Required (status open): type, voucherNumber, voucherDate, totalGrossAmount, totalTaxAmount, taxType, contactId or useCollectiveContact=true, voucherItems[{amount, taxAmount, taxRatePercent, categoryId}].",
+  "voucherStatus may be omitted (open) or 'unchecked' (most fields optional). Unchecked vouchers cannot use taxType net.",
+  "categoryId values: `posting-categories list`. Attach the receipt afterwards with `vouchers upload-file`.",
+]
+
+[[operations]]
+id = "vouchers.update"
+method = "PUT"
+path = "/v1/vouchers/{id}"
+summary = "Update a bookkeeping voucher (full replace; needs current version)"
+docs = "vouchers-endpoint-update-a-voucher"
+scopes = ["vouchers.write"]
+body = "json"
+merge_from = "vouchers.get"
+notes = [
+  "The status cannot be changed, except finalizing unchecked -> open. File ids omitted from `files` are deleted from the voucher.",
+]
+
+[[operations]]
+id = "vouchers.upload-file"
+method = "POST"
+path = "/v1/vouchers/{id}/files"
+summary = "Upload and attach a file (PDF, image, XML) to a bookkeeping voucher"
+docs = "vouchers-endpoint-upload-a-file-to-a-voucher"
+scopes = ["vouchers.write", "files.write"]
+body = "multipart"
+upload = [{ max_mb = 5, extensions = ["pdf", "jpg", "jpeg", "png", "xml"] }]
+keywords = ["attach", "anhängen", "receipt", "beleg", "upload"]
+
+# ---------------------------------------------------------------------------
+# Partner API only: cash boxes
+# ---------------------------------------------------------------------------
+
+[[operations]]
+id = "cash-boxes.list"
+method = "GET"
+path = "/v1/cash-boxes"
+summary = "List cash boxes"
+docs = "cash-boxes-endpoint-retrieve-all-cash-boxes"
+scopes = ["cashbox.read"]
+
+[[operations]]
+id = "cash-boxes.get"
+method = "GET"
+path = "/v1/cash-boxes/{id}"
+summary = "Retrieve a cash box"
+docs = "cash-boxes-endpoint-retrieve-a-cash-box"
+scopes = ["cashbox.read"]
+
+[[operations]]
+id = "cash-boxes.create"
+method = "POST"
+path = "/v1/cash-boxes"
+summary = "Create a cash box"
+docs = "cash-boxes-endpoint-create-a-cash-box"
+scopes = ["cashbox.write"]
+body = "json"
+notes = ["Required: cashBoxName, openingDate, openingAmount, currency (EUR), identifier."]
+
+[[operations]]
+id = "cash-boxes.update"
+method = "PUT"
+path = "/v1/cash-boxes/{id}"
+summary = "Rename a cash box"
+docs = "cash-boxes-endpoint-update-a-cash-box"
+scopes = ["cashbox.write"]
+body = "json"
+merge_from = "cash-boxes.get"
+notes = ["Only cashBoxName can change; version is required."]
+
+[[operations]]
+id = "cash-boxes.delete"
+method = "DELETE"
+path = "/v1/cash-boxes/{id}"
+summary = "Delete a cash box without vouchers"
+docs = "cash-boxes-endpoint-delete-a-cash-box"
+scopes = ["cashbox.write"]
+response = "empty"
+confirm = "Permanently deletes the cash box."
+
+[[operations]]
+id = "cash-box-balances.list"
+method = "GET"
+path = "/v1/cash-boxes/{cashBoxId}/balances"
+summary = "List cash box balances (paged)"
+docs = "cash-boxes-endpoint-retrieve-cash-box-balances"
+scopes = ["cashbox.read"]
+max_page_size = 100
+sort = ["voucherDate", "voucherNumber"]
+query = [
+  { name = "voucherNumber", type = "string", description = "Z-Bon number." },
+  { name = "dateFrom", type = "date", description = "Voucher date from (yyyy-MM-dd)." },
+  { name = "dateTo", type = "date", description = "Voucher date to (yyyy-MM-dd)." },
+]
+
+[[operations]]
+id = "cash-box-balances.create"
+method = "POST"
+path = "/v1/cash-boxes/{cashBoxId}/balances"
+summary = "Create a cash box balance (Z-Bon) with positions"
+docs = "cash-boxes-endpoint-create-a-cash-box-balance"
+scopes = ["cashbox.write"]
+body = "json"
+notes = ["voucherNumber + voucherDate must be unique; each balance can be transmitted once."]
+
+# ---------------------------------------------------------------------------
+# Partner API only: finance
+# ---------------------------------------------------------------------------
+
+[[operations]]
+id = "finance-accounts.list"
+method = "GET"
+path = "/v1/finance/accounts"
+summary = "List financial accounts, optionally by IBAN or externalReference"
+docs = "finance-endpoint-filtering-financial-accounts"
+scopes = ["finance.read"]
+notes = ["iban and externalReference cannot be combined."]
+query = [
+  { name = "iban", type = "string", description = "Filter by IBAN." },
+  { name = "externalReference", type = "string", description = "Filter by external reference." },
+]
+
+[[operations]]
+id = "finance-accounts.get"
+method = "GET"
+path = "/v1/finance/accounts/{id}"
+summary = "Retrieve a financial account"
+docs = "finance-endpoint-retrieve-a-financial-account"
+scopes = ["finance.read"]
+
+[[operations]]
+id = "finance-accounts.create"
+method = "POST"
+path = "/v1/finance/accounts"
+summary = "Create a financial account"
+docs = "finance-endpoint-create-a-financial-account"
+scopes = ["finance.write"]
+body = "json"
+notes = ["Required: type (GIRO|PAYMENT_PROVIDER), name, accountSystem, bankName, balance; iban+bic for GIRO."]
+
+[[operations]]
+id = "finance-accounts.update"
+method = "PUT"
+path = "/v1/finance/accounts/{id}"
+summary = "Update a financial account (e.g. balance)"
+docs = "finance-endpoint-update-a-financial-account"
+scopes = ["finance.write"]
+body = "json"
+merge_from = "finance-accounts.get"
+lock_field = "lockVersion"
+notes = ["Uses lockVersion (not version) for optimistic locking. Lexware never updates the balance by itself."]
+
+[[operations]]
+id = "finance-accounts.delete"
+method = "DELETE"
+path = "/v1/finance/accounts/{id}"
+summary = "Delete a financial account"
+docs = "finance-endpoint-delete-a-financial-account"
+scopes = ["finance.write"]
+response = "empty"
+confirm = "Permanently deletes the financial account."
+
+[[operations]]
+id = "finance-transactions.create"
+method = "POST"
+path = "/v1/finance/transactions"
+summary = "Create up to 25 financial transactions"
+docs = "finance-endpoint-create-financial-transactions"
+scopes = ["finance.write"]
+body = "json-array"
+notes = [
+  "Body is a JSON array. Each item: valueDate/bookingDate, purpose, amount, financialAccountId, externalReference (recommended for de-duplication).",
+  "Update the account balance afterwards with `finance-accounts update`.",
+]
+
+[[operations]]
+id = "finance-transactions.get"
+method = "GET"
+path = "/v1/finance/transactions/{id}"
+summary = "Retrieve a financial transaction"
+docs = "finance-endpoint-retrieve-a-financial-transaction"
+scopes = ["finance.read"]
+
+[[operations]]
+id = "finance-transactions.delete"
+method = "DELETE"
+path = "/v1/finance/transactions/{id}"
+summary = "Delete a financial transaction"
+docs = "finance-endpoint-delete-a-financial-transaction"
+scopes = ["finance.write"]
+response = "empty"
+confirm = "Permanently deletes the financial transaction."
+
+[[operations]]
+id = "finance-transactions.latest"
+method = "GET"
+path = "/v1/finance/transactions/latest-transaction"
+summary = "Retrieve the latest transaction of a financial account"
+docs = "finance-endpoint-retrieve-the-latest-financial-transaction"
+scopes = ["finance.read"]
+query = [
+  { name = "financialAccountId", type = "uuid", required = true, description = "The financial account." },
+]
+
+[[operations]]
+id = "finance-transactions.assignments"
+method = "GET"
+path = "/v1/finance/transactions/{id}/assignments"
+summary = "List vouchers assigned to a financial transaction"
+docs = "finance-endpoint-retrieve-assigned-vouchers-for-a-financial-transaction"
+scopes = ["finance.read"]
+
+# ---------------------------------------------------------------------------
+# Partner API only: organization, integrations, assignment hints
+# ---------------------------------------------------------------------------
+
+[[operations]]
+id = "organization.get"
+method = "GET"
+path = "/v1/organization"
+summary = "Retrieve organization master data"
+docs = "organization-endpoint-retrieve-organization-information"
+scopes = ["organization.read"]
+
+[[operations]]
+id = "partner-integrations.get"
+method = "GET"
+path = "/v1/partner-integrations"
+summary = "Retrieve partner integration data of this connection"
+docs = "partner-integrations-endpoint-retrieve-partner-integrations-data"
+
+[[operations]]
+id = "partner-integrations.update"
+method = "PUT"
+path = "/v1/partner-integrations"
+summary = "Update partner integration status"
+docs = "partner-integrations-endpoint-update-partner-integration-data"
+body = "json"
+merge_from = "partner-integrations.get"
+
+[[operations]]
+id = "transaction-assignment-hints.create"
+method = "POST"
+path = "/v1/transaction-assignment-hint"
+summary = "Create a transaction assignment hint for a voucher"
+docs = "transaction-assignment-hint-endpoint-create-a-transaction-assignment-hint"
+scopes = ["transaction-assignment-hint.write"]
+body = "json"
+notes = ["Body: {\"voucherId\": \"...\", \"externalReference\": \"...\"} or with endToEndId."]
