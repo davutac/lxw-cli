@@ -11,13 +11,18 @@ trademarks of Haufe-Lexware GmbH & Co. KG.
 
 ## Install
 
-Requires Rust 1.89 or newer.
+Download a binary from [Releases](https://github.com/davutac/lxw-cli/releases)
+(`lxw-macos-arm64`, `lxw-macos-amd64`, `lxw-linux-arm64`, `lxw-linux-amd64`; the Linux
+ones are static):
 
 ```sh
-cargo build --release    # binary at target/release/lxw
+curl -fLo lxw https://github.com/davutac/lxw-cli/releases/latest/download/lxw-macos-arm64
+chmod +x lxw && mv lxw ~/.local/bin/
 ```
 
-For a static Linux binary, run `scripts/build-linux.sh [arm64|amd64]` (needs Docker).
+Or build it with Rust 1.89 or newer: `cargo build --release` (binary at
+`target/release/lxw`). For a static Linux binary, run
+`scripts/build-linux.sh [arm64|amd64]` (needs Docker).
 
 ## Log in
 
@@ -92,6 +97,10 @@ Lexware's partner program (`lxw auth login --oauth`).
 your keychain. Commands are generated from `catalog/operations.toml`.
 `catalog/docs.json` is an extract of Lexware's documentation, regenerated with
 `scripts/extract_docs.py`.
+
+To release, bump `version` in `Cargo.toml` and push a matching tag (`git tag v0.2.0 &&
+git push origin v0.2.0`). The release workflow tests, builds all four binaries and
+publishes them with a `SHA256SUMS` file.
 
 ## License
 

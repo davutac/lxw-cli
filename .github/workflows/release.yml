@@ -1,0 +1,72 @@
+name: Release
+
+# Pushing a tag like v0.1.0 (matching Cargo.toml's version) tests, builds and
+# publishes a GitHub release. Running it manually builds without publishing.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  build:
+    needs: ci
+    strategy:
+      matrix:
+        include:
+          - { name: lxw-linux-amd64, os: ubuntu-24.04, arch: amd64 }
+          - { name: lxw-linux-arm64, os: ubuntu-24.04-arm, arch: arm64 }
+          - { name: lxw-macos-amd64, os: macos-26, target: x86_64-apple-darwin }
+          - { name: lxw-macos-arm64, os: macos-26, target: aarch64-apple-darwin }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Build static Linux binary
+        if: runner.os == 'Linux'
+        run: scripts/build-linux.sh ${{ matrix.arch }}
+      - name: Build macOS binary
+        if: runner.os == 'macOS'
+        run: |
+          rustup toolchain install stable --profile minimal --target ${{ matrix.target }} && rustup default stable
+          cargo build --release --locked --target ${{ matrix.target }}
+          mkdir -p dist && cp target/${{ matrix.target }}/release/lxw dist/${{ matrix.name }}
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ matrix.name }}
+          path: dist/${{ matrix.name }}
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Check tag matches Cargo.toml version
+        run: |
+          version=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].version')
+          if [ "$GITHUB_REF_NAME" != "v$version" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match Cargo.toml version $version"
+            exit 1
+          fi
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd dist
+          sha256sum lxw-* > SHA256SUMS
+          gh release create "$GITHUB_REF_NAME" --verify-tag --generate-notes lxw-* SHA256SUMS
