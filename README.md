@@ -26,11 +26,10 @@ irm https://raw.githubusercontent.com/davutac/lxw-cli/main/install.ps1 | iex
 Both check the download against the release's checksums. Run them again to update;
 set `LXW_VERSION=0.2.0` for a specific version or `LXW_INSTALL_DIR` for another folder.
 
-With a package manager:
+With Homebrew (macOS, Linux):
 
 ```sh
 brew tap davutac/lxw-cli https://github.com/davutac/lxw-cli && brew install davutac/lxw-cli/lxw
-scoop bucket add lxw https://github.com/davutac/lxw-cli; scoop install lxw/lxw
 ```
 
 The binaries are also on the [Releases](https://github.com/davutac/lxw-cli/releases) page.
@@ -115,8 +114,8 @@ your keychain. Commands are generated from `catalog/operations.toml`.
 
 To release, bump `version` in `Cargo.toml` and push a matching tag (`git tag v0.2.0 &&
 git push origin v0.2.0`). The release workflow tests, builds and publishes the six
-binaries with a `SHA256SUMS` file, commits the updated Homebrew formula and Scoop
-manifest to `main` (pull before your next push) and tests every install method.
+binaries with a `SHA256SUMS` file, commits the updated Homebrew formula to `main`
+(pull before your next push) and tests every install method.
 
 ## License
 

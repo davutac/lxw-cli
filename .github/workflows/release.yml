@@ -87,16 +87,16 @@ jobs:
       - uses: actions/checkout@v7 # v7.0.1
         with:
           ref: main
-      - name: Update Homebrew formula and Scoop manifest
+      - name: Update Homebrew formula
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release download "$GITHUB_REF_NAME" --pattern SHA256SUMS --dir "$RUNNER_TEMP"
-          scripts/package-manifests.sh "$GITHUB_REF_NAME" "$RUNNER_TEMP/SHA256SUMS"
-          git add Formula bucket
+          scripts/update-formula.sh "$GITHUB_REF_NAME" "$RUNNER_TEMP/SHA256SUMS"
+          git add Formula
           if ! git diff --cached --quiet; then
             git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
-              commit -m "Update Homebrew formula and Scoop manifest to $GITHUB_REF_NAME"
+              commit -m "Update Homebrew formula to $GITHUB_REF_NAME"
             git push origin main
           fi
 
