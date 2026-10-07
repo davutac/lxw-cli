@@ -137,26 +137,30 @@ mod tests {
     fn burst_allows_immediate_requests() {
         let dir = tempfile::tempdir().unwrap();
         let rl = RateLimiter::new(Some(dir.path().join("rl")), 1.0, 3);
-        let start = Instant::now();
         for _ in 0..3 {
-            rl.acquire();
+            assert_eq!(rl.acquire(), Duration::ZERO);
         }
-        assert!(start.elapsed() < Duration::from_millis(500));
     }
 
+    // Timing tests assert elapsed time from before the first call, which a slow
+    // machine can only lengthen. The slack covers millisecond truncation.
     #[test]
     fn penalize_delays_next_request() {
         let dir = tempfile::tempdir().unwrap();
         let rl = RateLimiter::new(Some(dir.path().join("rl")), 100.0, 1);
+        let start = Instant::now();
         rl.penalize(Duration::from_millis(150));
-        assert!(rl.acquire() >= Duration::from_millis(100));
+        rl.acquire();
+        assert!(start.elapsed() >= Duration::from_millis(145), "{:?}", start.elapsed());
     }
 
     #[test]
     fn disabled_and_fallback_modes() {
         assert_eq!(RateLimiter::new(None, 0.0, 1).acquire(), Duration::ZERO);
-        let rl = RateLimiter::new(None, 20.0, 1);
+        let rl = RateLimiter::new(None, 20.0, 1); // 50 ms interval
+        let start = Instant::now();
         rl.acquire();
-        assert!(rl.acquire() >= Duration::from_millis(30));
+        rl.acquire();
+        assert!(start.elapsed() >= Duration::from_millis(45), "{:?}", start.elapsed());
     }
 }
