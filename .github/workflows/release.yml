@@ -77,3 +77,31 @@ jobs:
           cd dist
           sha256sum lxw-* > SHA256SUMS
           gh release create "$GITHUB_REF_NAME" --verify-tag --generate-notes lxw-* SHA256SUMS
+
+  packages:
+    needs: release
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7 # v7.0.1
+        with:
+          ref: main
+      - name: Update Homebrew formula and Scoop manifest
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download "$GITHUB_REF_NAME" --pattern SHA256SUMS --dir "$RUNNER_TEMP"
+          scripts/package-manifests.sh "$GITHUB_REF_NAME" "$RUNNER_TEMP/SHA256SUMS"
+          git add Formula bucket
+          if ! git diff --cached --quiet; then
+            git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+              commit -m "Update Homebrew formula and Scoop manifest to $GITHUB_REF_NAME"
+            git push origin main
+          fi
+
+  install:
+    needs: packages
+    uses: ./.github/workflows/install.yml
+    with:
+      ref: main

@@ -1,0 +1,65 @@
+name: Install
+
+# Installs the latest release with every documented method. Runs when an install
+# method changes and after each release, once the package manifests are updated.
+on:
+  push:
+    branches: ["**"]
+    paths: [install.sh, install.ps1, Formula/**, bucket/**, .github/workflows/install.yml]
+  pull_request:
+    paths: [install.sh, install.ps1, Formula/**, bucket/**, .github/workflows/install.yml]
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      ref:
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  unix:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-26]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+      - name: install.sh
+        run: |
+          LXW_INSTALL_DIR="$RUNNER_TEMP/bin" sh install.sh
+          "$RUNNER_TEMP/bin/lxw" --version
+      - name: Homebrew
+        if: runner.os == 'macOS'
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+        run: |
+          brew tap davutac/lxw-cli "$PWD"
+          brew install davutac/lxw-cli/lxw
+          brew test davutac/lxw-cli/lxw
+
+  windows:
+    runs-on: windows-2025
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v7 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+      - name: install.ps1
+        run: |
+          $env:LXW_INSTALL_DIR = "$env:RUNNER_TEMP\bin"
+          Get-Content -Raw install.ps1 | Invoke-Expression
+          & "$env:RUNNER_TEMP\bin\lxw.exe" --version
+      - name: Scoop
+        run: |
+          Invoke-RestMethod https://get.scoop.sh -OutFile "$env:RUNNER_TEMP\scoop.ps1"
+          & "$env:RUNNER_TEMP\scoop.ps1" -RunAsAdmin
+          scoop bucket add lxw ([Uri]$PWD.Path).AbsoluteUri
+          scoop install lxw/lxw
+          & "$env:USERPROFILE\scoop\shims\lxw.exe" --version

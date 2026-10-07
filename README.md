@@ -11,22 +11,32 @@ trademarks of Haufe-Lexware GmbH & Co. KG.
 
 ## Install
 
-Download a binary from [Releases](https://github.com/davutac/lxw-cli/releases): `lxw-macos-arm64`,
-`lxw-macos-amd64`, `lxw-linux-arm64`, `lxw-linux-amd64` (static), `lxw-windows-amd64.exe`
-or `lxw-windows-arm64.exe`.
+macOS or Linux, into `~/.local/bin`:
 
 ```sh
-curl -fLo lxw https://github.com/davutac/lxw-cli/releases/latest/download/lxw-macos-arm64
-chmod +x lxw && mv lxw ~/.local/bin/
+curl -fsSL https://raw.githubusercontent.com/davutac/lxw-cli/main/install.sh | sh
 ```
+
+Windows (PowerShell), into `%LOCALAPPDATA%\Programs\lxw`, added to your PATH:
 
 ```powershell
-Invoke-WebRequest https://github.com/davutac/lxw-cli/releases/latest/download/lxw-windows-amd64.exe -OutFile lxw.exe
+irm https://raw.githubusercontent.com/davutac/lxw-cli/main/install.ps1 | iex
 ```
 
-Or build it with Rust 1.89 or newer: `cargo build --release` (binary at
-`target/release/lxw`). For a static Linux binary, run
-`scripts/build-linux.sh [arm64|amd64]` (needs Docker).
+Both check the download against the release's checksums. Run them again to update;
+set `LXW_VERSION=0.2.0` for a specific version or `LXW_INSTALL_DIR` for another folder.
+
+With a package manager:
+
+```sh
+brew tap davutac/lxw-cli https://github.com/davutac/lxw-cli && brew install davutac/lxw-cli/lxw
+scoop bucket add lxw https://github.com/davutac/lxw-cli; scoop install lxw/lxw
+```
+
+The binaries are also on the [Releases](https://github.com/davutac/lxw-cli/releases) page.
+To build from source with Rust 1.89 or newer: `cargo build --release` (binary at
+`target/release/lxw`), or `scripts/build-linux.sh [arm64|amd64]` for a static Linux
+binary (needs Docker).
 
 ## Log in
 
@@ -104,8 +114,9 @@ your keychain. Commands are generated from `catalog/operations.toml`.
 `scripts/extract_docs.py`.
 
 To release, bump `version` in `Cargo.toml` and push a matching tag (`git tag v0.2.0 &&
-git push origin v0.2.0`). The release workflow tests, builds all four binaries and
-publishes them with a `SHA256SUMS` file.
+git push origin v0.2.0`). The release workflow tests, builds and publishes the six
+binaries with a `SHA256SUMS` file, commits the updated Homebrew formula and Scoop
+manifest to `main` (pull before your next push) and tests every install method.
 
 ## License
 
