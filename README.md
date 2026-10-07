@@ -11,13 +11,17 @@ trademarks of Haufe-Lexware GmbH & Co. KG.
 
 ## Install
 
-Download a binary from [Releases](https://github.com/davutac/lxw-cli/releases)
-(`lxw-macos-arm64`, `lxw-macos-amd64`, `lxw-linux-arm64`, `lxw-linux-amd64`; the Linux
-ones are static):
+Download a binary from [Releases](https://github.com/davutac/lxw-cli/releases): `lxw-macos-arm64`,
+`lxw-macos-amd64`, `lxw-linux-arm64`, `lxw-linux-amd64` (static), `lxw-windows-amd64.exe`
+or `lxw-windows-arm64.exe`.
 
 ```sh
 curl -fLo lxw https://github.com/davutac/lxw-cli/releases/latest/download/lxw-macos-arm64
 chmod +x lxw && mv lxw ~/.local/bin/
+```
+
+```powershell
+Invoke-WebRequest https://github.com/davutac/lxw-cli/releases/latest/download/lxw-windows-amd64.exe -OutFile lxw.exe
 ```
 
 Or build it with Rust 1.89 or newer: `cargo build --release` (binary at
@@ -30,11 +34,12 @@ You need Lexware Office XL (or the free 30-day trial) and an API key from
 <https://app.lexware.de/addons/public-api>.
 
 ```sh
-printf %s "$KEY" | lxw auth login --with-token
+lxw auth login      # paste the key; or pipe it: printf %s "$KEY" | lxw auth login --with-token
 lxw auth status
 ```
 
-The key goes into the macOS Keychain or the Linux Secret Service. On macOS, each new
+The key goes into the macOS Keychain, the Linux Secret Service or the Windows Credential
+Manager. On macOS, each new
 `lxw` binary needs your approval once: run `lxw auth status` in a terminal and click
 "Always Allow". Where no keychain exists (CI, containers), set `LXW_API_KEY` instead.
 

@@ -12,24 +12,26 @@ permissions:
 env:
   CARGO_TERM_COLOR: always
 
-jobs:
-  lint:
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - run: rustup toolchain install stable --profile minimal --component clippy,rustfmt && rustup default stable
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
-      - run: cargo fmt --check
-      - run: cargo clippy --locked --all-targets -- -D warnings
+defaults:
+  run:
+    shell: bash
 
+jobs:
+  # Clippy runs on every OS because each has its own credential store backend.
   test:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, macos-26]
+        os: [ubuntu-24.04, macos-26, windows-2025]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - run: rustup toolchain install stable --profile minimal && rustup default stable
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - uses: actions/checkout@v7 # v7.0.1
+      - run: rustup toolchain install stable --profile minimal --component clippy,rustfmt && rustup default stable
+      - uses: Swatinem/rust-cache@v2 # v2.9.2
+      - if: runner.os == 'Linux'
+        run: cargo fmt --check
+      - run: cargo clippy --locked --all-targets -- -D warnings
       - run: cargo test --locked
+      # The runner's own Credential Manager; macOS and Linux need an unlocked keyring.
+      - if: runner.os == 'Windows'
+        run: cargo test --locked os_store_round_trip -- --ignored

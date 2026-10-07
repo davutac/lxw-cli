@@ -121,9 +121,19 @@ fn env_dir(var: &str) -> Option<PathBuf> {
     std::env::var_os(var).filter(|v| !v.is_empty()).map(PathBuf::from)
 }
 
+/// Windows keeps per-user config in %APPDATA% and caches in %LOCALAPPDATA%.
+fn windows_dir(var: &str) -> Option<PathBuf> {
+    if cfg!(windows) {
+        env_dir(var).map(|d| d.join("lxw"))
+    } else {
+        None
+    }
+}
+
 pub fn config_dir() -> PathBuf {
     env_dir("LXW_CONFIG_DIR")
         .or_else(|| env_dir("XDG_CONFIG_HOME").map(|d| d.join("lxw")))
+        .or_else(|| windows_dir("APPDATA"))
         .or_else(|| home().map(|h| h.join(".config").join("lxw")))
         .unwrap_or_else(|| PathBuf::from(".lxw"))
 }
@@ -131,6 +141,7 @@ pub fn config_dir() -> PathBuf {
 pub fn cache_dir() -> PathBuf {
     env_dir("LXW_CACHE_DIR")
         .or_else(|| env_dir("XDG_CACHE_HOME").map(|d| d.join("lxw")))
+        .or_else(|| windows_dir("LOCALAPPDATA"))
         .or_else(|| home().map(|h| h.join(".cache").join("lxw")))
         .unwrap_or_else(|| std::env::temp_dir().join("lxw"))
 }
@@ -212,6 +223,7 @@ fn save(cfg: &Config) -> Result<(), CliError> {
     {
         let mut opts = OpenOptions::new();
         opts.write(true).create(true).truncate(true);
+        // On Windows the file inherits the user-only access of %APPDATA%.
         #[cfg(unix)]
         {
             use std::os::unix::fs::OpenOptionsExt;

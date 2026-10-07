@@ -405,7 +405,13 @@ mod tests {
     #[test]
     fn multipart_body_has_fields_and_file() {
         let dir = tempfile::tempdir().unwrap();
-        let file = dir.path().join("Beleg \"1\".pdf");
+        // Windows forbids `"` in file names; elsewhere it must not break the header.
+        let (name, sent) = if cfg!(windows) {
+            ("Beleg 1.pdf", "Beleg 1.pdf")
+        } else {
+            ("Beleg \"1\".pdf", "Beleg _1_.pdf")
+        };
+        let file = dir.path().join(name);
         std::fs::write(&file, b"%PDF-1.4 x").unwrap();
         let (ct, body) = multipart(&file, &[("type".into(), "voucher".into())]).unwrap();
         let boundary = ct.strip_prefix("multipart/form-data; boundary=").unwrap();
@@ -413,7 +419,9 @@ mod tests {
         assert!(body.starts_with(&format!(
             "--{boundary}\r\nContent-Disposition: form-data; name=\"type\"\r\n\r\nvoucher\r\n"
         )));
-        assert!(body.contains("filename=\"Beleg _1_.pdf\"\r\nContent-Type: application/pdf\r\n\r\n%PDF-1.4 x\r\n"));
+        assert!(body.contains(&format!(
+            "filename=\"{sent}\"\r\nContent-Type: application/pdf\r\n\r\n%PDF-1.4 x\r\n"
+        )));
         assert!(body.ends_with(&format!("--{boundary}--\r\n")));
     }
 

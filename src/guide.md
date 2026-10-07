@@ -6,8 +6,9 @@ Partner-API-only operations are tagged `partner-api-only` and need OAuth).
 ## Auth
 - `export LXW_API_KEY=...` (or `LXW_API_KEY_FILE=/path`), or store it:
   `printf %s "$KEY" | lxw auth login --with-token`. Stored keys go into the OS
-  credential store (macOS Keychain, Linux Secret Service), never into plain files,
-  and are only ever sent to the API host they were verified against.
+  credential store (macOS Keychain, Linux Secret Service, Windows Credential
+  Manager), never into plain files, and are only ever sent to the API host they
+  were verified against.
 - macOS asks once to approve Keychain access after the lxw binary changes. Without
   a terminal the CLI fails fast (exit 3) instead of waiting: run `lxw auth status`
   in a terminal and click "Always Allow".

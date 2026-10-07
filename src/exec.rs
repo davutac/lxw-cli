@@ -617,7 +617,7 @@ fn download(
         n
     };
     fs::rename(&tmp, &target)?;
-    let shown = fs::canonicalize(&target).unwrap_or(target);
+    let shown = std::path::absolute(&target).unwrap_or(target);
     output::print_json(
         &json!({ "file": shown, "bytes": written, "contentType": content_type, "suggestedFileName": suggested }),
         g.pretty,
@@ -649,12 +649,30 @@ pub fn disposition_filename(h: &str) -> Option<String> {
             .map(|v| v.trim_matches('"').to_string())
     };
     let name = extended.or_else(plain)?;
-    let name = name
+    // A plain file name that is valid everywhere: no directories, drive letters
+    // (`C:x`), NTFS streams (`a:b`) or Windows device names (`NUL.pdf`).
+    let name: String = name
         .rsplit(['/', '\\'])
         .next()?
-        .trim()
-        .replace(|c: char| c.is_control(), "");
-    (!name.is_empty() && name != "." && name != "..").then_some(name)
+        .chars()
+        .filter(|c| !c.is_control())
+        .map(|c| {
+            if matches!(c, '<' | '>' | ':' | '"' | '|' | '?' | '*') {
+                '_'
+            } else {
+                c
+            }
+        })
+        .collect();
+    let name = name.trim().trim_end_matches('.');
+    let stem = name.split('.').next().unwrap_or("").trim_end().to_ascii_uppercase();
+    let device = matches!(stem.as_str(), "CON" | "PRN" | "AUX" | "NUL")
+        || (stem.len() == 4 && ["COM", "LPT"].contains(&&stem[..3]) && stem.as_bytes()[3].is_ascii_digit());
+    match name {
+        "" => None,
+        _ if device => Some(format!("_{name}")),
+        _ => Some(name.to_string()),
+    }
 }
 
 fn extension_for(content_type: Option<&str>) -> &'static str {
@@ -697,6 +715,18 @@ mod tests {
             disposition_filename("attachment; filename=\"../../etc/passwd\"").as_deref(),
             Some("passwd")
         );
+        for (sent, saved) in [
+            ("..\\..\\x.pdf", Some("x.pdf")),
+            ("C:x.pdf", Some("C_x.pdf")),
+            ("a.pdf:stream", Some("a.pdf_stream")),
+            ("NUL.pdf", Some("_NUL.pdf")),
+            ("com1", Some("_com1")),
+            ("CONTRACT.pdf", Some("CONTRACT.pdf")),
+            ("..", None),
+        ] {
+            let header = format!("attachment; filename=\"{sent}\"");
+            assert_eq!(disposition_filename(&header).as_deref(), saved, "{sent}");
+        }
         assert_eq!(disposition_filename("inline"), None);
     }
 

@@ -5,6 +5,8 @@
 //!   `security find-generic-password`, need the user's approval.
 //! - Linux: the Secret Service (GNOME Keyring, KWallet, ...) via libsecret's
 //!   `secret-tool`; secrets travel over stdin/stdout, never in process arguments.
+//! - Windows: the Credential Manager (generic credentials named
+//!   `lxw-cli:profile:<name>`), encrypted with the user's login.
 //! - Elsewhere, or without a running keyring: unavailable. Use `LXW_API_KEY`
 //!   or opt into the plaintext file store explicitly (`auth login --store file`).
 //!
@@ -34,6 +36,8 @@ pub fn store_name() -> &'static str {
         "macOS Keychain"
     } else if cfg!(target_os = "linux") {
         "Secret Service (via secret-tool)"
+    } else if cfg!(windows) {
+        "Windows Credential Manager"
     } else {
         "OS credential store"
     }
@@ -213,7 +217,119 @@ mod backend {
     }
 }
 
-#[cfg(not(any(target_os = "macos", target_os = "linux")))]
+#[cfg(windows)]
+mod backend {
+    use super::{SERVICE, unavailable};
+    use crate::error::CliError;
+    use std::io::Error;
+    use windows_sys::Win32::Foundation::ERROR_NOT_FOUND;
+    use windows_sys::Win32::Security::Credentials::{
+        CRED_MAX_CREDENTIAL_BLOB_SIZE, CRED_PERSIST_LOCAL_MACHINE, CRED_TYPE_GENERIC, CREDENTIALW, CredDeleteW,
+        CredFree, CredReadW, CredWriteW,
+    };
+
+    /// A credential holds at most 2560 bytes, less than OAuth tokens may need,
+    /// so longer secrets continue in `<target>#2`, `<target>#3`, ...
+    const CHUNK: usize = CRED_MAX_CREDENTIAL_BLOB_SIZE as usize;
+
+    fn wide(s: &str) -> Vec<u16> {
+        s.encode_utf16().chain([0]).collect()
+    }
+
+    fn target(account: &str, part: usize) -> Vec<u16> {
+        match part {
+            0 => wide(&format!("{SERVICE}:{account}")),
+            n => wide(&format!("{SERVICE}:{account}#{}", n + 1)),
+        }
+    }
+
+    /// The error of the call that just failed, or `None` if the entry does not exist.
+    fn last_error() -> Option<Error> {
+        let e = Error::last_os_error();
+        (e.raw_os_error() != Some(ERROR_NOT_FOUND as i32)).then_some(e)
+    }
+
+    fn failed(what: &str, e: Error) -> CliError {
+        unavailable(format!("Windows Credential Manager: cannot {what}: {e}"))
+    }
+
+    fn read_part(account: &str, part: usize) -> Result<Option<Vec<u8>>, CliError> {
+        let name = target(account, part);
+        let mut cred: *mut CREDENTIALW = std::ptr::null_mut();
+        // SAFETY: `name` is NUL-terminated; on success `cred` is valid until CredFree.
+        unsafe {
+            if CredReadW(name.as_ptr(), CRED_TYPE_GENERIC, 0, &mut cred) == 0 {
+                return last_error().map_or(Ok(None), |e| Err(failed("read secret", e)));
+            }
+            let c = &*cred;
+            let blob = if c.CredentialBlob.is_null() {
+                Vec::new()
+            } else {
+                std::slice::from_raw_parts(c.CredentialBlob, c.CredentialBlobSize as usize).to_vec()
+            };
+            CredFree(cred.cast());
+            Ok(Some(blob))
+        }
+    }
+
+    fn write_part(account: &str, part: usize, data: &[u8]) -> Result<(), CliError> {
+        let mut name = target(account, part);
+        let mut user = wide(account);
+        let cred = CREDENTIALW {
+            Type: CRED_TYPE_GENERIC,
+            TargetName: name.as_mut_ptr(),
+            UserName: user.as_mut_ptr(),
+            CredentialBlobSize: data.len() as u32,
+            CredentialBlob: data.as_ptr().cast_mut(),
+            Persist: CRED_PERSIST_LOCAL_MACHINE,
+            ..Default::default()
+        };
+        // SAFETY: every pointer outlives the call; CredWriteW copies the data.
+        if unsafe { CredWriteW(&cred, 0) } == 0 {
+            return Err(failed("store secret", Error::last_os_error()));
+        }
+        Ok(())
+    }
+
+    /// Deletes the parts from `first` on; returns once one does not exist.
+    fn delete_from(account: &str, first: usize) -> Result<(), CliError> {
+        for part in first.. {
+            let name = target(account, part);
+            // SAFETY: `name` is NUL-terminated.
+            if unsafe { CredDeleteW(name.as_ptr(), CRED_TYPE_GENERIC, 0) } == 0 {
+                return last_error().map_or(Ok(()), |e| Err(failed("delete secret", e)));
+            }
+        }
+        Ok(())
+    }
+
+    pub fn read(account: &str) -> Result<Option<Vec<u8>>, CliError> {
+        let Some(mut secret) = read_part(account, 0)? else {
+            return Ok(None);
+        };
+        for part in 1.. {
+            match read_part(account, part)? {
+                Some(more) => secret.extend(more),
+                None => break,
+            }
+        }
+        Ok(Some(secret))
+    }
+
+    pub fn write(account: &str, secret: &[u8]) -> Result<(), CliError> {
+        for (part, chunk) in secret.chunks(CHUNK).enumerate() {
+            write_part(account, part, chunk)?;
+        }
+        // Remove parts left over from a longer secret.
+        delete_from(account, secret.len().div_ceil(CHUNK))
+    }
+
+    pub fn delete(account: &str) -> Result<(), CliError> {
+        delete_from(account, 0)
+    }
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "linux", windows)))]
 mod backend {
     use super::unavailable;
     use crate::error::CliError;
@@ -254,12 +370,19 @@ mod tests {
     #[ignore]
     fn os_store_round_trip() {
         let profile = format!("test-{}", std::process::id());
-        let s = Secrets {
+        let small = Secrets {
             api_key: Some("round-trip".into()),
             ..Default::default()
         };
-        write(&profile, &s).unwrap();
-        assert_eq!(read(&profile).unwrap(), Some(s));
+        // Larger than one Windows credential (2560 bytes).
+        let large = Secrets {
+            access_token: Some("t".repeat(6000)),
+            ..small.clone()
+        };
+        for s in [&large, &small] {
+            write(&profile, s).unwrap();
+            assert_eq!(read(&profile).unwrap().as_ref(), Some(s));
+        }
         delete(&profile).unwrap();
         assert_eq!(read(&profile).unwrap(), None);
     }
